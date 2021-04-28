@@ -24,7 +24,7 @@ There are three deliverables: a script called **parcels.py**, a QGIS project fil
 
 1. Change the CRS for the dissolved layer to EPSG:26918 by setting `dissolved` to the value returned by calling the `.to_crs()` method of `dissolved` with `epsg=26918`. That matches the projection used by Onondaga County, which will speed things up later. It is a slightly different specification for UTM 18N from the one used in the last assignment. 
 
-1. Create a list called `radius` that contains four numbers: 1000, 2000, 3000 and 6000. These will be the outer radii, in meters, of the rings we'll create. There will be three near the highway and then a fourth, broader, ring to select parcels that are further away and could be used as a comparison group. In part, the fourth ring is there to emphasize that the radii of the rings can vary.
+1. Create a list called `radius` that contains the following numbers: 200, 400, 600, 800, 1000 and 2000. These will be the outer radii, in meters, of the rings we'll create. There will be several near the highway and then a broader ring to select parcels that are further away and could be used as a comparison group. In part, the last ring is there to emphasize that the radii of the rings can vary.
 
 1. Set `ring_layer` equal to the result of calling `geopandas.GeoDataFrame()` to create a new, empty geodataframe.
 
