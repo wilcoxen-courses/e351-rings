@@ -2,180 +2,80 @@
 
 ### Summary
 
-This exercise uses multi-ring buffers and a spatial join to add the 
-distance from an interstate to tax parcel records for Onondaga County.
-The data is then used to calculate the mean assessed value for 
-residential and other property by that distance.
+This exercise builds a multi-ring set of buffers around a highway and then uses a spatial join to determine which property tax parcels are within each ring.
 
 ### Input Data
 
-There are two input files: (1) the GeoPackage `onondaga.gpkg` from the 
-last assignment (or from the class Google Drive if you had trouble
-with the assignment); and (2) the file of tax parcel centroids from the 
-previous exercise: `Onondaga-Tax-Parcels-Centroid-Points-SHP.zip`.
+There are two input files: the geopackage file **onondaga.gpkg** created in the previous assignment and **onondaga-tax-parcels.gpkg**, a geopackage file with a range of information, including the centroid, assessed value, and other characteristics, about each tax parcel in Onondaga County.
 
 ### Deliverables
 
-There are four deliverables: a QGIS project file called 
-**by_distance.qgz**, an updated GeoPackage file called **onondaga.gpkg**, 
-a PNG file called **by_distance.png**, and a Python script called 
-**av_by_distance.py**.
+There are three deliverables: a script called **parcels.py**, a QGIS project file called **rings.qgz**, and an image called **rings.png**. 
 
 ### Instructions
 
-**A. QGIS steps**
+**A. Script parcels.py**
 
-1. If you were able to build the `boundary` and `interstate` layers 
-correctly in the previous exercise, copy your `onondaga.gpkg` from that
-assignment to the GitHub directory for this one. If you had trouble, 
-use the `onondaga.gpkg` in the class Google Drive folder for this 
-assignment instead.
+1. Import geopandas.
 
-1. Start QGIS and add the `boundary` and `interstates` layers from 
-`onondaga.gpkg`. 
+1. Read the interstates layer from `"onondaga.gpkg"` into a new variable called `interstates`. To be sure you have the right layer, include the argument `layer="interstates"` in the call.
 
-1. Set the project projection (icon in the lower right) to EPSG:6347, 
-which is the NAD83(2011)/UTM zone 18N coordinate reference system.
+1. Create a variable called `dissolved` by dissolving `interstates` the same way it was done in the previous assignment. 
 
-1. Dissolve the interstate layer so all of its segments will be part 
-of a single feature. 
+1. Change the CRS for the dissolved layer to EPSG:26918 by setting `dissolved` to the value returned by calling the `.to_crs()` method of `dissolved` with `epsg=26918`. That matches the projection used by Onondaga County, which will speed things up later. It is a slightly different specification for UTM 18N from the one used in the last assignment. 
 
-1. Build a multi-ring buffer from the dissolved interstate layer. Use 6 
-rings and set the distance between them to be 0.25 miles (a quarter mile). 
+1. Create a list called `radius` that contains four numbers: 1000, 2000, 3000 and 6000. These will be the outer radii, in meters, of the rings we'll create. There will be three near the highway and then a fourth, broader, ring to select parcels that are further away and could be used as a comparison group. In part, the fourth ring is there to emphasize that the radii of the rings can vary.
 
-1. Export the multi-ring buffer to `onondaga.gpkg` using the layer name 
-`quarter-miles` and be sure to **uncheck** `fid` in the "Select fields 
-to export and their export options" box. If you don't do this you'll get an 
-error about the records in the layer not having unique IDs. See the Tips 
-section for an explanation.
+1. Set `ring_layer` equal to the result of calling `geopandas.GeoDataFrame()` to create a new, empty geodataframe.
 
-1. Remove the unexported `Dissolved` and `Multi-ring buffer` layers. You 
-should have `boundary`, `interstates`, and `quarter-miles` left.
+1. Create a new column called `"radius"` in `ring_layer` that is equal to the `radius` variable. The column will be part of the attribute table of the layer we're building and will indicate the outer radius of each ring.
 
-1. Add the property tax centroids to the map.
+1. Now we'll build the geometries of the rings. Start by creating a new empty list called `geo_list` to contain them.
 
-1. Save the project as `by_distance.gqz`.
+1. Next, create a variable called `last_buf` and set it equal to `None`. As you'll see below, we'll create the buffers moving outward from the interstate. This variable will be used to make the buffers into rings by allowing us to subtract out the previous buffer when building the next one.
 
-1. Use a spatial join to add the ring information to the tax centroids. The 
-input layer should be the centroids and the join layer should be 
-`quarter-miles`. Use `intersects` for the geometric predicate and choose the 
-one-to-one option for the join type (the choice that begins "Take attributes
-of the first ...").
+1. Use running variable `r` to loop over `radius`. Within the loop, do the following:
 
-1. Open the attribute table of the joined layer to verify that it now 
-includes `ringId` and `distance` fields at the far right. In case you're 
-curious, the distance column is in meters, which is the underlying unit 
-used in the EPSG:6347 coordinate system.
+    1. Set `this_buf` to the result of calling the `.buffer()` method on `dissolved` with argument `r`.
 
-1. Set the style of the joined layer to 'Categorized', use `ringId` 
-as the value, and use 'Magma' as the color ramp.
-
-1. Export the map as a PNG image called `by_distance.png`.
-
-1. Now export the joined layer but instead of using GeoPackage as the format
-choose CSV. For the file name, use `by_distance.csv` and be sure it ends up 
-in the GitHub directory for the assignment. To speed things up and keep the 
-output file small, under "Select fields to export and their export options"
-please click on the "Deselect All" button and then check the following 
-fields individually: `PROP_CLASS`, `TOTAL_AV`, `YR_BLT`, `NBR_BEDRM`, 
-`ringId`, and `distance`. Then uncheck the "Add saved file to map" box and 
-click "Ok" to save the CSV file. It should be about 8 MB or so.
-
-1. Save the project again.
-
-1. Close QGIS. You'll get a message about one or more temporary layers 
-being lost. It's alerting you to the fact that we haven't saved the joined 
-layer. However, we'll let it be discarded because it's quite large (600 MB) 
-and can be rebuilt if necessary. Click "Yes" to proceed without saving the 
-layer.
-
-**B. Python steps**
-
-1. Write a Python script called `av_by_distance.py` that does the following 
-steps. 
-
-1. First, use Pandas to read the CSV file from the mapping step, 
-`by_distance.csv`, into a variable called `parcels`.
-
-1. Set variable `count_by_ring` to the result of calling the `value_counts()` 
-method on `parcels['ringId']` with the argument `dropna=False`. Then print
-`count_by_ring` to see how many parcels there are in each zone.
-
-1. Use the `fillna()` method to set the `'ringId'` column to 7 for records 
-where it's missing (properties beyond buffer 6). Call `fillna()` on 
-`parcels['ringId']` with the arguments 7 and `inplace=True`.
-
-1. Set variable `pc` to the `'PROP_CLASS'` column of `parcels`.
-
-1. Single family houses used year round are property class 210. To help 
-pick out those records, set variable `is_house` to the result of testing 
-whether the `parcels['PROP_CLASS']` is 210.
-
-1. For comparison, set variable `is_bus` to the result of testing whether
-`parcels['PROP_CLASS']` is greater than or equal to 400. The classes 400 
-and up include commercial and industrial property, as well as several 
-other categories. See the Tips section if you'd like a little more detail.
-
-1. Create a new column in `parcels` called `'type'` and set it to `'other'`.
-This will set the default type for the parcel.
-
-1. Now set the new column to `'house'` when `is_house` is true using the 
-location operator `.loc[]` as shown below. The first argument to `.loc[]` 
-indicates which rows are to be changed and the second argument indicates 
-the column to be set.
-
-    ```
-    parcels.loc[is_house,'type'] = 'house'
-    ```  
+    1. Use an `if` statement to see if the length of `geo_list` is 0, which indicates that no rings have been built yet. If that's true, do the following:
     
-1. Do something similar to set the appropriate values of `parcels['type']` 
-to `'bus'` using `is_bus`.
+        1. Append `this_buf[0]` to `geo_list`.
 
-1. Group the parcels by ring and type by setting variable `by_ring` to the result 
-of applying the `groupby()` method to `parcels`. Since we're grouping on 
-two characteristics the call to `groupby()` should be a list consisting of 
-`'ringId'` and `'type'`: `['ringId','type']`.
+    1. Handle other cases using an `else` statement with a block of code that does the following:
 
-1. Calculate the mean asset value by group by applying the `.mean()` 
-method to `by_ring['TOTAL_AV']`. Call the result `mean_av`.
+        1. Creates a variable called `change` that is equal to the result of calling the `.difference()` method on `this_buf` with the argument `last_buf`. The result will be the ring buffer for the current value of `r`: that is, the area within `r` meters from the interstate but outside the previous buffer.
 
-1. Now create a variable called `unstacked` that is equal to the result of 
-applying the `.unstack()` and `.round(0)` methods to `mean_av`.
+        1. Append `change[0]` to `geo_list`.
 
-1. Print `unstacked`. Have a look at it and see what you think. It
-isn't necessary to write anything up because this is just a preliminary 
-look at the spatial variation in the data. A more detailed analysis would 
-use a regression to control for additional characteristics of the houses, 
-such as the age or number of bedrooms (e.g., the kinds of things saved in 
-the CSV file above), not just proximity to the road. 
+    1. After the end of the `else` block set `last_buf` equal to `this_buf`.
 
-### Submitting
+1. After the end of the `for` loop, add a column called `geometry` to `ring_layer` and set it equal to `geo_list`. The effect will be to load the geometry (polygons) for each ring into the layer.
 
-Once you're happy with everything and have committed all of the changes to
-your local repository, please push the changes to GitHub. At that point, 
-you're done: you have submitted your answer.
+1. Set the CRS of the ring layer by setting `ring_layer` to the result of calling `.set_crs()` on `ring_layer` using argument `epsg=26918`.
+
+1. Save `ring_layer` to a geopackage file called `"rings.gpkg"` as layer `"rings"`.
+
+1. Read `"onondaga-tax-parcels.gpkg"` into a geodataframe called `parcels`. The file has a lot of records and quite a few fields so don't be surprised if this and the next few steps are a little slow.
+
+1. Now we'll do the spatial join to add the ring information onto the parcel layer. Create variable `near` by calling `geopandas.overlay()` with three arguments: `parcels`, `ring_layer`, and `how="intersection"`. 
+
+1. Save `near` to geopackage `"near-parcels.gpkg"` as layer `"parcels"`.
+
+1. For convenience in a subsequent exercise, also write out the attribute table as a CSV file. To do so, drop the `"geometry"` column from `near` and then use `.to_csv()` to write the revised version of `near` out as `"near-parcels.csv"` using `index=False`.
+
+**B. Files rings.qgz and rings.png**
+
+1. Start a new QGIS project and load in the county and interstates layers from `"onondaga.gpkg"`.
+
+1. Next, load in `"rings.gpkg"`.
+
+1. Now add the tax parcel centroids for the rings by loading `"near-parcels.gpkg"`.
+
+1. Stack the layers so the parcels are on the top, then the interstates, the rings, and then the county. Use "Categorized" as the style of the parcels, with the value set to `"radius"` and the color ramp set to "random" or whatever alternative you prefer.
+
+1. Save the project as `"rings.qgz"` and export the map as `"rings.png"`.
 
 ### Tips
 
-+ The GeoPackage format requires that each record have a unique ID. QGIS 
-usually uses `fid`, the feature ID field, as the unique ID if it's available.
-However, if you look at the attribute table for the ring buffer layer you'll 
-notice that the `fid` field is the same for all of the buffers. That would 
-cause an error saving the layer to a GeoPackage file. It's possible to avoid 
-that by renumbering the features but frankly it's easier to simply exclude `fid` 
-from the export. When it isn't present, QGIS will use the row number as the 
-unique ID for each row, which is fine. Also, it's worth noting that this 
-requirement applies to GeoPackage files and does NOT apply to SHP files: 
-they do not require that `fid` be unique and you could save the buffer layer
-to a SHP file without any problem. 
-
-+ In case you're curious, here's more information about the broad property 
-classes used in the centroid file: 100-199 is agricultural; 
-200-299 is residential (a number of other types beyond single family 
-year-round residences); 300-399 is vacant land; 400-499 is commercial;
-500-599 is recreation and entertainment; 600-699 is community services 
-(schools, churches, government, etc.); 700-799 is industrial; 800-899 is 
-public services (utilities, etc.); 900-999 is parks and wild land. If you 
-want to see the full list, add the 'NYS_Property_Class_codes.dbf' layer 
-from the centroid file to your map and look at the attribute table. (Just 
-have a look: no need to join it to anything.)
++ You'll notice right away that the only parcels in `"near-parcels.gpkg"` are those that fall within one of the rings: parcels outside the outer ring are not included. That's because the `how="intersection"` directive to the overlay method does an inner join and only returns records for items with geometries (parcel centroid and ring) that intersect. Including the other parcels in the output could be done by changing `how="intersection"` to `how="union"`. All of the original parcels would appear in the output but those outside the largest ring would end up with missing values for `"radius"`. It would take considerably longer, however.
