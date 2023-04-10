@@ -6,7 +6,7 @@ This exercise builds a multi-ring set of buffers around a highway and then uses 
 
 ## Input Data
 
-There are two input files: the geopackage file **onondaga.gpkg** created in the previous assignment and **onondaga-tax-parcels.gpkg**, a geopackage file with a range of information, including the centroid, assessed value, and other characteristics, about each tax parcel in Onondaga County.
+There are two input files: the geopackage file **onondaga.gpkg** created in the previous assignment and **onondaga-tax-parcels.gpkg**, a geopackage file with a range of information, including the centroid, assessed value, and other characteristics, about each tax parcel in Onondaga County. It should be downloaded from the course Google Drive.
 
 ## Deliverables
 
