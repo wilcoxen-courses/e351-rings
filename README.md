@@ -50,7 +50,7 @@ There are three deliverables: a script called **parcels.py**, a QGIS project fil
 
 1. Set the CRS of the ring layer by setting `ring_layer` to the result of calling `.set_crs()` on `ring_layer` using argument `interstates.crs`. This sets the CRS to the CRS of the `interstates` layer. Note that in this case the call is `.set_crs()` **not** `.to_crs()`. (FAQ 1)
 
-1. Save `ring_layer` to a geopackage file called `"near-parcels.gpkg"` as layer `"rings"` and use `index=False`.
+1. Save `ring_layer` to a geopackage file called `"near-parcels.gpkg"` as layer `"rings"`.
 
 1. Read `"onondaga-tax-parcels.gpkg"` into a geodataframe called `parcels`. The file has a bit more than 180,000 records and quite a few fields so don't be surprised if it takes some time to load.
 
@@ -58,7 +58,7 @@ There are three deliverables: a script called **parcels.py**, a QGIS project fil
 
 1. Check the join by printing the result of applying `.value_counts()` to the `"radius"` column of `near` using `dropna=False`. As a check, you should have 6247 parcels in the 200 m ring and a bit under 68,000 beyond the 3200 m ring (NaN for the radius).
 
-1. Save `near` to geopackage `"near-parcels.gpkg"` as layer `"parcels"` and use `index=False`.
+1. Save `near` to geopackage `"near-parcels.gpkg"` as layer `"parcels"`.
 
 1. For convenience in a subsequent exercise, also write out the attribute table as a CSV file. To do so, drop the `"geometry"` column from `near` and then use `.to_csv()` to write the revised version of `near` out as `"near-parcels.csv"` using `index=False`.
 
