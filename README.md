@@ -22,10 +22,6 @@ There are three deliverables: a script called **parcels.py**, a QGIS project fil
 
 1. Create a list called `radius` that contains the following numbers: `200`, `400`, `600`, `800`, `1000`, `1200`, `1400`, `1600` and `3200`. These will be the outer radii, in meters, of the rings we'll create. There will be several near the highway and then a broader ring to select parcels that are further away and could be used as a comparison group. Also, that ring demonstrates that the radii of the rings can vary.
 
-1. Set `ring_layer` equal to the result of calling `gpd.GeoDataFrame()` to create a new, empty GeoDataFrame.
-
-1. Create a new column called `"radius"` in `ring_layer` that is equal to the `radius` variable. The column will be part of the attribute table of the layer we're building and will indicate the outer radius of each ring.
-
 1. Now we'll build the geometries of the rings. Start by creating a new empty list called `geo_list` to contain them.
 
 1. Next, create a variable called `last_buf` and set it equal to `None`. As you'll see below, we'll create the buffers moving outward from the interstate. This variable will be used to make the buffers into rings by allowing us to subtract out the previous buffer when building the next one.
@@ -46,9 +42,13 @@ There are three deliverables: a script called **parcels.py**, a QGIS project fil
 
     1. After the end of the `else` block, but still inside the loop, set `last_buf` equal to `this_buf`. To be clear, this line should _not_ be in the `if`/`else` block: it needs to be outside that so it is executed each trip through the loop no matter what happens with the `if` statement.
 
-1. At this point the `for` loop is complete. Now, after the end of the loop, add a column called `geometry` to `ring_layer` and set it equal to `geo_list`. This will be to load the geometry (polygons) just built for each ring into the layer.
+1. At this point the `for` loop is complete. Now, after then end of the loop, set `ring_layer` equal to the result of calling `gpd.GeoDataFrame()` with argument `geometry=geo_list` to create a new GeoDataFrame with the ring geometry just built.
 
-1. Set the CRS of the ring layer by setting `ring_layer` to the result of calling `.set_crs()` on `ring_layer` using argument `interstates.crs`. This sets the CRS to the CRS of the `interstates` layer. Note that in this case the call is `.set_crs()` **not** `.to_crs()`. (FAQ 1)
+1. Set the CRS of `ring_layer` by setting `ring_layer` to the result of calling `.set_crs()` on `ring_layer` using argument `interstates.crs`. This copies the CRS of `interstates` to `ring_layer` so the coordinates in the `ring_layer` polygons can be interpreted correctly. Note that in this case the call is `.set_crs()` **NOT** `.to_crs()`. (FAQ 1)
+
+1. Create a new column called `"radius"` in `ring_layer` that is equal to the `radius` variable. The column will be part of the attribute table of the layer we're building and will indicate the outer radius of each ring.
+
+
 
 1. Save `ring_layer` to a geopackage file called `"near-parcels.gpkg"` as layer `"rings"`.
 
